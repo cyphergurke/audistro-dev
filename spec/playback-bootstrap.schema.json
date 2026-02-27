@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://audiostr.local/spec/playback-bootstrap.schema.json",
+  "title": "Playback Bootstrap Response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "schema_version",
+    "now",
+    "asset",
+    "providers"
+  ],
+  "properties": {
+    "api_version": {
+      "type": "string"
+    },
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "now": {
+      "type": "integer"
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "hls"
+      ],
+      "properties": {
+        "asset_id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "duration_ms": {
+          "type": "integer"
+        },
+        "hls": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "master_path",
+            "encryption"
+          ],
+          "properties": {
+            "master_path": {
+              "type": "string"
+            },
+            "encryption": {
+              "type": "string"
+            },
+            "key_uri_template": {
+              "type": "string"
+            }
+          }
+        },
+        "pay": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "resource_id",
+            "challenge_url",
+            "token_url",
+            "payee_id",
+            "fap_payee_id",
+            "price_msat"
+          ],
+          "properties": {
+            "resource_id": {
+              "type": "string"
+            },
+            "challenge_url": {
+              "type": "string"
+            },
+            "token_url": {
+              "type": "string"
+            },
+            "payee_id": {
+              "type": "string"
+            },
+            "fap_payee_id": {
+              "type": "string"
+            },
+            "price_msat": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    "providers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider_id",
+          "transport",
+          "base_url",
+          "priority",
+          "expires_at",
+          "last_seen_at",
+          "hint_score",
+          "stale"
+        ],
+        "properties": {
+          "provider_id": {
+            "type": "string"
+          },
+          "transport": {
+            "type": "string"
+          },
+          "base_url": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "integer"
+          },
+          "expires_at": {
+            "type": "integer"
+          },
+          "last_seen_at": {
+            "type": "integer"
+          },
+          "region": {
+            "type": "string"
+          },
+          "hint_score": {
+            "type": "integer"
+          },
+          "stale": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

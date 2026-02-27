@@ -1,0 +1,6 @@
+# service|repo_url|ref
+# ref can be a branch, tag, or commit hash.
+audistro-catalog|https://github.com/cyphergurke/audistro-catalog|main
+audistro-fap|https://github.com/cyphergurke/audistro-fap.git|main
+audistro-provider|https://github.com/cyphergurke/audistro-provider|main
+audistro-web|https://github.com/cyphergurke/audistro-web.git|main

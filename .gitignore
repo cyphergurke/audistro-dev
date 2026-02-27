@@ -1,0 +1,21 @@
+# Local secrets/env overrides
+secrets/*
+!secrets/.gitkeep
+env/*.env
+!env/*.example.env
+env/*.local
+
+# Runtime artifacts
+*.log
+
+# Go build artifacts
+*.test
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+
+# Temporary backups from setup script
+services/*.backup-*

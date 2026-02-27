@@ -1,0 +1,180 @@
+services:
+  audistro-catalog:
+    build:
+      context: ./services/audistro-catalog
+      dockerfile: Dockerfile
+    env_file:
+      - ./env/audistro-catalog.env
+    ports:
+      - "18080:8080"
+    volumes:
+      - audistro-catalog_data:/var/lib/audistro-catalog
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    restart: unless-stopped
+
+  audistro-fap:
+    build:
+      context: ./services/audistro-fap
+      dockerfile: Dockerfile
+    env_file:
+      - ./env/fap.env
+    ports:
+      - "18081:8080"
+    volumes:
+      - fap_data:/var/lib/fap
+    secrets:
+      - fap_token_secret
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    restart: unless-stopped
+
+  lnbits:
+    image: lnbits/lnbits:latest
+    env_file:
+      - ./env/lnbits.env
+    ports:
+      - "18090:5000"
+    volumes:
+      - lnbits_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:5000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    restart: unless-stopped
+
+  audistro-provider_eu_1:
+    build:
+      context: ./services/audistro-provider
+      dockerfile: Dockerfile
+    env_file:
+      - ./env/audistro-provider_eu_1.env
+    ports:
+      - "18082:8080"
+    volumes:
+      - audistro-provider_eu_1_data:/var/lib/audistro-provider
+    secrets:
+      - origin_hmac_secret
+    depends_on:
+      audistro-catalog:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+    stop_grace_period: 20s
+
+  audistro-provider_eu_2:
+    build:
+      context: ./services/audistro-provider
+      dockerfile: Dockerfile
+    env_file:
+      - ./env/audistro-provider_eu_2.env
+    ports:
+      - "18083:8080"
+    volumes:
+      - audistro-provider_eu_2_data:/var/lib/audistro-provider
+    secrets:
+      - origin_hmac_secret
+    depends_on:
+      audistro-catalog:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+    stop_grace_period: 20s
+
+  audistro-provider_us_1:
+    build:
+      context: ./services/audistro-provider
+      dockerfile: Dockerfile
+    env_file:
+      - ./env/audistro-provider_us_1.env
+    ports:
+      - "18084:8080"
+    volumes:
+      - audistro-provider_us_1_data:/var/lib/audistro-provider
+    secrets:
+      - origin_hmac_secret
+    depends_on:
+      audistro-catalog:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+    stop_grace_period: 20s
+
+  audistro-web:
+    build:
+      context: ./services/audistro-web
+      dockerfile: Dockerfile
+    environment:
+      CATALOG_BASE_URL: http://audistro-catalog:8080
+      FAP_BASE_URL: http://audistro-fap:8080
+      PROVIDER_INTERNAL_BASE_URL: http://audistro-provider_eu_1:8080
+      NEXT_PUBLIC_CATALOG_BASE_URL: http://audistro-catalog:8080
+      NEXT_PUBLIC_FAP_BASE_URL: http://audistro-fap:8080
+      NEXT_PUBLIC_DEV_ADMIN: "true"
+      DEV_ADMIN_ALLOW_LNBITS_BASE_URLS: http://lnbits:5000,http://localhost:5000,http://localhost:18090,http://localhost:18085
+      NEXT_PUBLIC_FAP_PUBLIC_BASE_URL: http://localhost:18081
+      NEXT_PUBLIC_DEV_ADMIN_DEFAULT_LNBITS_BASE_URL: http://lnbits:5000
+      NEXT_TELEMETRY_DISABLED: "1"
+    ports:
+      - "3000:3000"
+    depends_on:
+      audistro-catalog:
+        condition: service_healthy
+      audistro-fap:
+        condition: service_healthy
+      audistro-provider_eu_1:
+        condition: service_healthy
+      audistro-provider_eu_2:
+        condition: service_healthy
+      audistro-provider_us_1:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  audistro-catalog_data:
+  fap_data:
+  lnbits_data:
+  audistro-provider_eu_1_data:
+  audistro-provider_eu_2_data:
+  audistro-provider_us_1_data:
+
+secrets:
+  fap_token_secret:
+    file: ./secrets/fap_token_secret
+  origin_hmac_secret:
+    file: ./secrets/origin_hmac_secret
+  opennode_key:
+    file: ./secrets/opennode_key
+  opennode_secret:
+    file: ./secrets/opennode_secret

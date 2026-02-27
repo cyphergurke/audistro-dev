@@ -1,0 +1,27 @@
+{
+  "version": "2026-02-19",
+  "provider_announcement": {
+    "provider_id": "11111111-2222-3333-4444-555555555555",
+    "asset_id": "asset1",
+    "transport": "https",
+    "base_url": "https://provider.example/assets/asset1",
+    "expires_at": 1700604800,
+    "nonce": "1032547698badcfe0011223344556677",
+    "canonical_message": "11111111-2222-3333-4444-555555555555|asset1|https|https://provider.example/assets/asset1|1700604800|1032547698badcfe0011223344556677",
+    "canonical_message_sha256": "3967520c64ddd125a21aa5bbef4d1c31f84e53db589c240ee13ca93e8bc0e16f",
+    "signature_hex": "fc16782ad64a74ae4db90617bac606d5a639d00e5c7fea51f01679430fb55ab65021cbdddde016cab58cc39ab9e53b3ab1076e70a1d476784330c0585451cf6f"
+  },
+  "origin_hmac": {
+    "key_id": "v1",
+    "secret_utf8": "0123456789abcdef0123456789abcdef",
+    "provider_id": "11111111-2222-3333-4444-555555555555",
+    "include_query": true,
+    "method": "GET",
+    "path": "/assets/asset1/seg_0001.m4s",
+    "raw_query": "token=abc&v=1",
+    "timestamp": 1700000000,
+    "nonce_hex": "00112233445566778899aabbccddeeff",
+    "canonical_string": "GET\\n/assets/asset1/seg_0001.m4s?token=abc&v=1\\n1700000000\\n00112233445566778899aabbccddeeff\\n11111111-2222-3333-4444-555555555555",
+    "signature_hex": "43f55125833fbb8d9413a0c6d797070abbb7c25312b3a7ce5344a2ba16ff1d90"
+  }
+}
