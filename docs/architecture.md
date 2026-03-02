@@ -143,12 +143,13 @@ Verantwortung:
 ### 5.4 Fan Transparency / Spend Dashboard
 
 1. UI lädt `/api/me/spend-summary`.
-2. Server paginiert device-scoped FAP Ledger.
-3. Aggregation:
+2. Server nutzt primär `GET /v1/ledger/summary` (device-scoped via `fap_device_id` Cookie).
+3. Fallback: Pagination über `GET /v1/ledger` falls Summary nicht verfügbar.
+4. Aggregation:
    - access vs boost totals
    - top assets
    - top payees
-4. Label-Enrichment über Catalog Asset-Lookups.
+5. Label-Enrichment über Catalog Asset-Lookups.
 
 ## 6. Security-Modell (Ist)
 

@@ -41,6 +41,10 @@ services:
     image: lnbits/lnbits:latest
     env_file:
       - ./env/lnbits.env
+    command:
+      - sh
+      - -lc
+      - /app/.venv/bin/python -m lnbits.server --port "$$LNBITS_PORT" --host "$$LNBITS_HOST" --forwarded-allow-ips='*'
     ports:
       - "18090:5000"
     volumes:

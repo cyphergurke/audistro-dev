@@ -40,6 +40,7 @@ Es gibt weiterhin klare Production-Blocker (siehe `docs/prod-todos.md`).
 
 - Normalisierte Ledger-Einträge für Access und Boost.
 - Device-scoped Listing mit Cursor-Pagination.
+- Device-scoped Summary-API (`GET /v1/ledger/summary`) für 7d/30d Totals, Top-Assets/Payees und Counts ohne Dashboard-Pagination.
 - Web Spend-Dashboard:
   - Access vs Boost totals
   - Top assets

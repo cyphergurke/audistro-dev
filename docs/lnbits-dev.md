@@ -2,6 +2,11 @@
 
 This stack now includes LNbits as a local dev service.
 
+Note:
+
+- the compose service starts LNbits via the image's bundled virtualenv (`/app/.venv/bin/python -m lnbits.server`).
+- this avoids `uv run` trying to resolve Python build dependencies from PyPI during container startup.
+
 ## Start
 
 From repo root:
