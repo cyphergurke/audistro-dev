@@ -31,9 +31,9 @@ Each provider uses its own persistent volume mounted at `/var/lib/audistro-provi
    - assert broken provider: `master.m3u8` is `200`, first segment is non-`200`
    - assert healthy provider: `master.m3u8` is `200`, first segment is `200`
    - log explicit fallback PASS line
-7. FAP flow:
-   - `POST /v1/access/{assetId}` returns token
-   - `GET /hls/{assetId}/key` with bearer token returns exactly `16` bytes
+7. FAP integration sanity:
+   - if `FAP_DEV_MODE=true`, the script also verifies `POST /v1/access/{assetId}` and `GET /hls/{assetId}/key`
+   - if `FAP_DEV_MODE=false`, the script logs a skip for the dev-access endpoint and leaves non-dev key validation to `scripts/smoke-paid-access.sh`
 
 ## Boost Dev Check (Manual)
 
@@ -59,7 +59,6 @@ This avoids manual DB writes for payee provisioning.
 ## Run
 
 ```bash
-chmod +x scripts/smoke-e2e-playback.sh
 ./scripts/smoke-e2e-playback.sh
 ```
 
@@ -79,8 +78,43 @@ For non-dev challenge/invoice/token flow, run:
 
 Details: see [`docs/smoke-paid-access.md`](./smoke-paid-access.md).
 
+## Encrypted Ingest + Paid Access Smoke
+
+For the full Phase 2 pipeline, run:
+
+```bash
+./scripts/smoke-upload-encrypt-pay.sh
+```
+
+Manual payment mode:
+
+```bash
+./scripts/smoke-upload-encrypt-pay.sh --wait-manual
+```
+
+Details: see [`docs/smoke-upload-encrypt-pay.md`](./smoke-upload-encrypt-pay.md).
+
+## Encrypted Playback + Failover Validation
+
+For Phase 2.2 encrypted playback and multi-provider failover, run:
+
+```bash
+./scripts/smoke-encrypted-failover.sh
+```
+
+If the encrypted asset still needs a manual payment bootstrap:
+
+```bash
+./scripts/smoke-encrypted-failover.sh --wait-manual
+```
+
+Details: see [`docs/encrypted-playback.md`](./encrypted-playback.md).
+
+The failover smoke now expects a normal encrypted upload to fanout-publish the asset to both `audistro-provider_eu_1` and `audistro-provider_eu_2`; it no longer copies assets between provider volumes as a setup step.
+
 ## Notes
 
 - This is dev-only smoke coverage.
 - The script requires `docker` and `curl`, plus `jq` or `python3`.
+- For non-dev paid access/key validation, use `./scripts/smoke-paid-access.sh` or `./scripts/ci-gates.sh smoke`.
 - `audistro-catalog` currently enforces HTTPS for signed provider announce URLs. In this local HTTP setup the script still triggers announce endpoints, then upserts provider registry rows in SQLite using the providers' runtime identities so fallback behavior remains deterministic.

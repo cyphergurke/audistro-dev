@@ -4,12 +4,19 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+CI_MODE="${CI:-0}"
+SKIP_MANUAL="${SKIP_MANUAL:-0}"
+
 ASSET_ID="${ASSET_ID:-asset_paid_smoke}"
 ARTIST_ID="${ARTIST_ID:-artist_paid_smoke}"
 ARTIST_HANDLE="${ARTIST_HANDLE:-paidsmoke}"
 CATALOG_PAYEE_ID="${CATALOG_PAYEE_ID:-payee_paid_smoke}"
 AMOUNT_MSAT="${AMOUNT_MSAT:-1000000}"
-WAIT_SECONDS="${WAIT_SECONDS:-180}"
+DEFAULT_WAIT_SECONDS=180
+if [ "$CI_MODE" = "1" ]; then
+  DEFAULT_WAIT_SECONDS=120
+fi
+WAIT_SECONDS="${WAIT_SECONDS:-$DEFAULT_WAIT_SECONDS}"
 WAIT_INTERVAL_SECONDS="${WAIT_INTERVAL_SECONDS:-2}"
 SETTLEMENT_GRACE_SECONDS="${SETTLEMENT_GRACE_SECONDS:-20}"
 FORCE_WEBHOOK_ON_TIMEOUT_SET="${FORCE_WEBHOOK_ON_TIMEOUT+x}"
@@ -60,6 +67,11 @@ log() {
 fail() {
   printf '[smoke-paid-access] FAIL: %s\n' "$*" >&2
   exit 1
+}
+
+skip() {
+  printf '[smoke-paid-access] SKIP: %s\n' "$*"
+  exit 0
 }
 
 need_cmd() {
@@ -323,10 +335,23 @@ if [ -z "$LNBITS_READ_KEY" ]; then
   LNBITS_READ_KEY="${FAP_LNBITS_READONLY_API_KEY:-}"
 fi
 
-[ -n "$LNBITS_INVOICE_KEY" ] || fail "missing LNbits invoice key (set LNBITS_INVOICE_KEY or FAP_LNBITS_INVOICE_API_KEY)"
-[ -n "$LNBITS_READ_KEY" ] || fail "missing LNbits read key (set LNBITS_READ_KEY or FAP_LNBITS_READONLY_API_KEY)"
+[ -n "$LNBITS_INVOICE_KEY" ] || {
+  if [ "$SKIP_MANUAL" = "1" ]; then
+    skip "LNbits invoice key missing and SKIP_MANUAL=1"
+  fi
+  fail "missing LNbits invoice key (set LNBITS_INVOICE_KEY or FAP_LNBITS_INVOICE_API_KEY)"
+}
+[ -n "$LNBITS_READ_KEY" ] || {
+  if [ "$SKIP_MANUAL" = "1" ]; then
+    skip "LNbits read key missing and SKIP_MANUAL=1"
+  fi
+  fail "missing LNbits read key (set LNBITS_READ_KEY or FAP_LNBITS_READONLY_API_KEY)"
+}
 
 if [ "$MANUAL_WAIT" -eq 0 ] && [ -z "$LNBITS_PAYER_ADMIN_KEY" ]; then
+  if [ "$SKIP_MANUAL" = "1" ]; then
+    skip "LNBITS_PAYER_ADMIN_KEY missing and SKIP_MANUAL=1"
+  fi
   log "No LNBITS_PAYER_ADMIN_KEY found; switching to --wait-manual mode"
   MANUAL_WAIT=1
 fi

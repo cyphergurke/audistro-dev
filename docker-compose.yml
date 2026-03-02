@@ -17,6 +17,28 @@ services:
       start_period: 5s
     restart: unless-stopped
 
+  audistro-catalog-worker:
+    build:
+      context: ./services/audistro-catalog
+      dockerfile: Dockerfile
+    env_file:
+      - ./env/audistro-catalog.env
+    environment:
+      AUDICATALOG_WORKER_MODE: ingest
+    command: ["/app/audicatalog-worker"]
+    volumes:
+      - audistro-catalog_data:/var/lib/audistro-catalog
+      - audistro-provider_eu_1_data:/mnt/providers/eu_1
+      - audistro-provider_eu_2_data:/mnt/providers/eu_2
+    depends_on:
+      audistro-catalog:
+        condition: service_healthy
+      audistro-provider_eu_1:
+        condition: service_healthy
+      audistro-provider_eu_2:
+        condition: service_healthy
+    restart: unless-stopped
+
   audistro-fap:
     build:
       context: ./services/audistro-fap
@@ -135,7 +157,11 @@ services:
       dockerfile: Dockerfile
     environment:
       CATALOG_BASE_URL: http://audistro-catalog:8080
+      CATALOG_INTERNAL_BASE_URL: http://audistro-catalog:8080
+      CATALOG_ADMIN_TOKEN: dev-admin-token
       FAP_BASE_URL: http://audistro-fap:8080
+      FAP_INTERNAL_BASE_URL: http://audistro-fap:8080
+      FAP_PUBLIC_BASE_URL: http://localhost:18081
       PROVIDER_INTERNAL_BASE_URL: http://audistro-provider_eu_1:8080
       NEXT_PUBLIC_CATALOG_BASE_URL: http://audistro-catalog:8080
       NEXT_PUBLIC_FAP_BASE_URL: http://audistro-fap:8080

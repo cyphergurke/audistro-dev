@@ -1,0 +1,11 @@
+{
+  "name": "audistro-dev-tools",
+  "private": true,
+  "packageManager": "npm@10.9.2",
+  "scripts": {
+    "openapi:lint": "./scripts/openapi-lint.sh"
+  },
+  "devDependencies": {
+    "@stoplight/spectral-cli": "6.15.0"
+  }
+}

@@ -1,0 +1,145 @@
+services:
+  caddy:
+    image: caddy:2.10
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL?set ACME_EMAIL}
+      WEB_HOST: ${WEB_HOST?set WEB_HOST}
+      API_HOST: ${API_HOST?set API_HOST}
+      PROVIDER_EU_1_HOST: ${PROVIDER_EU_1_HOST?set PROVIDER_EU_1_HOST}
+      PROVIDER_EU_2_HOST: ${PROVIDER_EU_2_HOST?set PROVIDER_EU_2_HOST}
+      PROVIDER_US_1_HOST: ${PROVIDER_US_1_HOST?set PROVIDER_US_1_HOST}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - audistro-web
+      - audistro-catalog
+      - audistro-fap
+      - audistro-provider_eu_1
+      - audistro-provider_eu_2
+      - audistro-provider_us_1
+    networks: [edge, internal]
+
+  audistro-web:
+    build:
+      context: ./services/audistro-web
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      CATALOG_BASE_URL: http://audistro-catalog:8080
+      CATALOG_INTERNAL_BASE_URL: http://audistro-catalog:8080
+      FAP_BASE_URL: http://audistro-fap:8080
+      FAP_INTERNAL_BASE_URL: http://audistro-fap:8080
+      PROVIDER_INTERNAL_BASE_URL: http://audistro-provider_eu_1:8080
+      NEXT_PUBLIC_CATALOG_BASE_URL: http://audistro-catalog:8080
+      NEXT_PUBLIC_FAP_BASE_URL: http://audistro-fap:8080
+      NEXT_PUBLIC_FAP_PUBLIC_BASE_URL: https://${API_HOST}/fap
+      NEXT_PUBLIC_DEV_ADMIN: "false"
+      NEXT_TELEMETRY_DISABLED: "1"
+    networks: [internal]
+
+  audistro-catalog:
+    build:
+      context: ./services/audistro-catalog
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./env/prod/audistro-catalog.env
+    volumes:
+      - audistro_catalog_data:/var/lib/audistro-catalog
+    networks: [internal]
+
+  audistro-catalog-worker:
+    build:
+      context: ./services/audistro-catalog
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./env/prod/audistro-catalog.env
+    environment:
+      AUDICATALOG_WORKER_MODE: ingest
+    command: ["/app/audicatalog-worker"]
+    volumes:
+      - audistro_catalog_data:/var/lib/audistro-catalog
+      - audistro_provider_eu_1_data:/var/lib/audistro-provider
+    networks: [internal]
+    depends_on:
+      - audistro-catalog
+      - audistro-provider_eu_1
+
+  audistro-fap:
+    build:
+      context: ./services/audistro-fap
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./env/prod/fap.env
+    volumes:
+      - audistro_fap_data:/var/lib/fap
+    secrets:
+      - fap_token_secret
+    networks: [internal]
+
+  audistro-provider_eu_1:
+    build:
+      context: ./services/audistro-provider
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./env/prod/audistro-provider_eu_1.env
+    volumes:
+      - audistro_provider_eu_1_data:/var/lib/audistro-provider
+    secrets:
+      - origin_hmac_secret
+    networks: [internal]
+
+  audistro-provider_eu_2:
+    build:
+      context: ./services/audistro-provider
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./env/prod/audistro-provider_eu_2.env
+    volumes:
+      - audistro_provider_eu_2_data:/var/lib/audistro-provider
+    secrets:
+      - origin_hmac_secret
+    networks: [internal]
+
+  audistro-provider_us_1:
+    build:
+      context: ./services/audistro-provider
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./env/prod/audistro-provider_us_1.env
+    volumes:
+      - audistro_provider_us_1_data:/var/lib/audistro-provider
+    secrets:
+      - origin_hmac_secret
+    networks: [internal]
+
+networks:
+  edge:
+  internal:
+    internal: true
+
+volumes:
+  caddy_data:
+  caddy_config:
+  audistro_catalog_data:
+  audistro_fap_data:
+  audistro_provider_eu_1_data:
+  audistro_provider_eu_2_data:
+  audistro_provider_us_1_data:
+
+secrets:
+  fap_token_secret:
+    file: ./secrets/fap_token_secret
+  origin_hmac_secret:
+    file: ./secrets/origin_hmac_secret

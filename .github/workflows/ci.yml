@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  openapi-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package.json
+
+      - name: Install Spectral
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Lint OpenAPI specs
+        run: ./scripts/openapi-lint.sh
+
+  openapi-breaking:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.0'
+          cache: true
+          cache-dependency-path: |
+            services/audistro-fap/go.sum
+            services/audistro-catalog/go.sum
+            services/audistro-provider/go.sum
+
+      - name: Install oasdiff
+        run: |
+          go install github.com/oasdiff/oasdiff@v1.11.10
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Check OpenAPI breaking changes
+        run: BASE_REF=origin/main ./scripts/openapi-breaking.sh
+
+  quality:
+    needs:
+      - openapi-lint
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [unit, smoke]
+    env:
+      CI: "1"
+      SKIP_MANUAL: "1"
+      LNBITS_PAYER_ADMIN_KEY: ${{ secrets.LNBITS_PAYER_ADMIN_KEY }}
+      LNBITS_INVOICE_KEY: ${{ secrets.LNBITS_INVOICE_KEY }}
+      LNBITS_READ_KEY: ${{ secrets.LNBITS_READ_KEY }}
+      LNBITS_INVOICE_KEY_PAYEE: ${{ secrets.LNBITS_INVOICE_KEY_PAYEE }}
+      LNBITS_READ_KEY_PAYEE: ${{ secrets.LNBITS_READ_KEY_PAYEE }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.0'
+          cache: true
+          cache-dependency-path: |
+            services/audistro-fap/go.sum
+            services/audistro-catalog/go.sum
+            services/audistro-provider/go.sum
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: services/audistro-web/pnpm-lock.yaml
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
+      - name: Prepare local secrets
+        run: |
+          mkdir -p secrets
+          if [ ! -f secrets/fap_token_secret ]; then
+            printf 'ci-fap-token-secret-0123456789abcdef\n' > secrets/fap_token_secret
+            chmod 600 secrets/fap_token_secret
+          fi
+          if [ ! -f secrets/origin_hmac_secret ]; then
+            printf 'ci-origin-hmac-secret-0123456789abcdef\n' > secrets/origin_hmac_secret
+            chmod 600 secrets/origin_hmac_secret
+          fi
+
+      - name: Run CI gates
+        run: ./scripts/ci-gates.sh ${{ matrix.suite }}

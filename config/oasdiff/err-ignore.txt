@@ -1,0 +1,4 @@
+# Known spec-drift corrections where runtime validation already enforced the stricter behavior.
+GET /v1/ledger the 'query' request parameter 'kind' was restricted to a list of enum values
+GET /v1/ledger/summary the 'query' request parameter 'kind' was restricted to a list of enum values
+GET /v1/ledger/summary the 'query' request parameter 'window_days' was restricted to a list of enum values

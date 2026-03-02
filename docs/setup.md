@@ -25,6 +25,13 @@ docker compose up -d --build
 
 ```bash
 docker compose ps
-./scripts/smoke-e2e-playback.sh
+./scripts/ci-gates.sh unit
+CI=1 SKIP_MANUAL=1 ./scripts/ci-gates.sh smoke
+```
+
+If you want to force a manual payment path locally:
+
+```bash
 ./scripts/smoke-paid-access.sh --wait-manual
+./scripts/smoke-upload-encrypt-pay.sh --wait-manual
 ```

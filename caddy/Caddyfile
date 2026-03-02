@@ -1,0 +1,48 @@
+{
+  email {$ACME_EMAIL}
+}
+
+{$WEB_HOST} {
+  encode zstd gzip
+  reverse_proxy audistro-web:3000
+}
+
+{$API_HOST} {
+  encode zstd gzip
+
+  @catalog path /catalog /catalog/*
+  handle_path @catalog {
+    reverse_proxy audistro-catalog:8080
+  }
+
+  @fapInternal path /fap/internal/*
+  respond @fapInternal 404
+
+  @fap path /fap /fap/*
+  handle_path @fap {
+    reverse_proxy audistro-fap:8080
+  }
+
+  respond 404
+}
+
+{$PROVIDER_EU_1_HOST} {
+  encode zstd gzip
+  @internal path /internal/*
+  respond @internal 404
+  reverse_proxy audistro-provider_eu_1:8080
+}
+
+{$PROVIDER_EU_2_HOST} {
+  encode zstd gzip
+  @internal path /internal/*
+  respond @internal 404
+  reverse_proxy audistro-provider_eu_2:8080
+}
+
+{$PROVIDER_US_1_HOST} {
+  encode zstd gzip
+  @internal path /internal/*
+  respond @internal 404
+  reverse_proxy audistro-provider_us_1:8080
+}
