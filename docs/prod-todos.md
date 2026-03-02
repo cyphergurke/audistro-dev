@@ -16,6 +16,9 @@ Bereits umgesetzte Punkte bleiben knapp als `done` markiert, damit offene Lücke
 - `[done]` FAP, Catalog und Provider failen jetzt hart bei unsicheren Prod-Defaults, soweit die aktuellen Konfigurationsmodelle es erlauben.
   Acceptance criteria: `FAP_DEV_MODE=false` ohne `FAP_INTERNAL_ALLOWED_CIDRS`, `CATALOG_ENV=dev` ohne `CATALOG_ADMIN_TOKEN` und `PROVIDER_INTERNAL_ENABLE=true` ohne `PROVIDER_INTERNAL_ALLOWED_CIDRS` brechen den Start deterministisch ab.
 
+- `[done]` `AUDISTRO_ENV` ist jetzt das einheitliche Runtime-Mode-Signal, und alle Services validieren in `prod` ihre minimalen Pflicht-Umgebungsvariablen gegen ein maschinenlesbares Schema vor dem Serverstart.
+  Acceptance criteria: Entfernt man in `docker-compose.prod.yml` einen als `required_in_prod` markierten Key, beendet der betroffene Prozess den Start mit Exit-Code `1` und einer einzelnen `envcheck:`-Fehlermeldung vor der HTTP-Initialisierung.
+
 - `[done]` Dev-/Admin-Endpunkte sind in Prod hart deaktiviert oder am Edge blockiert.
   Acceptance criteria: Catalog registriert `/v1/admin/*` in Prod nicht, Web-Dev-Admin bleibt aus, und der Caddy-Referenz-Stack blockiert `/catalog/v1/admin/*` sowie `/internal/*` bereits am Edge.
 

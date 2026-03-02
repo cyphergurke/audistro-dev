@@ -31,7 +31,9 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
+      AUDISTRO_ENV: prod
       CATALOG_BASE_URL: http://audistro-catalog:8080
+      CATALOG_BASE_URLS: http://audistro-catalog:8080
       CATALOG_INTERNAL_BASE_URL: http://audistro-catalog:8080
       FAP_BASE_URL: http://audistro-fap:8080
       FAP_INTERNAL_BASE_URL: http://audistro-fap:8080
@@ -50,6 +52,8 @@ services:
     restart: unless-stopped
     env_file:
       - ./env/prod/audistro-catalog.env
+    environment:
+      AUDISTRO_ENV: prod
     volumes:
       - audistro_catalog_data:/var/lib/audistro-catalog
     networks: [internal]
@@ -62,6 +66,7 @@ services:
     env_file:
       - ./env/prod/audistro-catalog.env
     environment:
+      AUDISTRO_ENV: prod
       AUDICATALOG_WORKER_MODE: ingest
     command: ["/app/audicatalog-worker"]
     volumes:
@@ -81,6 +86,8 @@ services:
     restart: unless-stopped
     env_file:
       - ./env/prod/fap.env
+    environment:
+      AUDISTRO_ENV: prod
     volumes:
       - audistro_fap_data:/var/lib/fap
     secrets:
@@ -94,6 +101,8 @@ services:
     restart: unless-stopped
     env_file:
       - ./env/prod/audistro-provider_eu_1.env
+    environment:
+      AUDISTRO_ENV: prod
     volumes:
       - audistro_provider_eu_1_data:/var/lib/audistro-provider
     secrets:
@@ -107,6 +116,8 @@ services:
     restart: unless-stopped
     env_file:
       - ./env/prod/audistro-provider_eu_2.env
+    environment:
+      AUDISTRO_ENV: prod
     volumes:
       - audistro_provider_eu_2_data:/var/lib/audistro-provider
     secrets:
@@ -120,6 +131,8 @@ services:
     restart: unless-stopped
     env_file:
       - ./env/prod/audistro-provider_us_1.env
+    environment:
+      AUDISTRO_ENV: prod
     volumes:
       - audistro_provider_us_1_data:/var/lib/audistro-provider
     secrets:
