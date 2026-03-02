@@ -17,6 +17,54 @@ services:
       start_period: 5s
     restart: unless-stopped
 
+  audistro-catalog-mirror:
+    build:
+      context: ./services/audistro-catalog
+      dockerfile: Dockerfile
+    env_file:
+      - ./env/audistro-catalog-mirror.env
+    command:
+      - sh
+      - -lc
+      - until [ -f /var/lib/audistro-catalog/audistro-catalog.db ]; do sleep 1; done; exec /app/audicatalogd
+    ports:
+      - "18091:8080"
+    volumes:
+      - audistro-catalog_mirror_data:/var/lib/audistro-catalog
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    restart: unless-stopped
+
+  audistro-catalog-replicator:
+    build:
+      context: ./services/audistro-catalog
+      dockerfile: Dockerfile
+    environment:
+      CATALOG_PRIMARY_DB_PATH: /mnt/catalog-primary/audistro-catalog.db
+      CATALOG_MIRROR_DB_PATH: /mnt/catalog-mirror/audistro-catalog.db
+      CATALOG_REPLICATION_INTERVAL_SECONDS: "15"
+    command:
+      - sh
+      - -lc
+      - |
+        while :; do
+          /app/audicatalog-snapshot sync \
+            --source "$$CATALOG_PRIMARY_DB_PATH" \
+            --target "$$CATALOG_MIRROR_DB_PATH"
+          sleep "$$CATALOG_REPLICATION_INTERVAL_SECONDS"
+        done
+    volumes:
+      - audistro-catalog_data:/mnt/catalog-primary
+      - audistro-catalog_mirror_data:/mnt/catalog-mirror
+    depends_on:
+      audistro-catalog:
+        condition: service_healthy
+    restart: unless-stopped
+
   audistro-catalog-worker:
     build:
       context: ./services/audistro-catalog
@@ -157,6 +205,7 @@ services:
       dockerfile: Dockerfile
     environment:
       CATALOG_BASE_URL: http://audistro-catalog:8080
+      CATALOG_BASE_URLS: http://audistro-catalog:8080,http://audistro-catalog-mirror:8080
       CATALOG_INTERNAL_BASE_URL: http://audistro-catalog:8080
       CATALOG_ADMIN_TOKEN: dev-admin-token
       FAP_BASE_URL: http://audistro-fap:8080
@@ -174,6 +223,8 @@ services:
       - "3000:3000"
     depends_on:
       audistro-catalog:
+        condition: service_healthy
+      audistro-catalog-mirror:
         condition: service_healthy
       audistro-fap:
         condition: service_healthy
@@ -193,6 +244,7 @@ services:
 
 volumes:
   audistro-catalog_data:
+  audistro-catalog_mirror_data:
   fap_data:
   lnbits_data:
   audistro-provider_eu_1_data:

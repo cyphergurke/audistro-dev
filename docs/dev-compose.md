@@ -2,6 +2,8 @@
 
 This repo root contains a development Docker Compose setup for:
 - `audistro-catalog`
+- `audistro-catalog-mirror`
+- `audistro-catalog-replicator`
 - `audistro-catalog-worker`
 - `audistro-fap`
 - `audistro-provider`
@@ -19,7 +21,9 @@ This repo root contains a development Docker Compose setup for:
 ## Port map
 
 - `audistro-catalog`: `http://localhost:18080`
+- `audistro-catalog-mirror`: `http://localhost:18091`
 - `audistro-catalog-worker`: internal only
+- `audistro-catalog-replicator`: internal only
 - `audistro-fap`: `http://localhost:18081`
 - `audistro-provider_eu_1`: `http://localhost:18082`
 - `audistro-provider_eu_2`: `http://localhost:18083`
@@ -28,6 +32,7 @@ This repo root contains a development Docker Compose setup for:
 
 Container-to-container DNS wiring:
 - `audistro-provider -> audistro-catalog`: `http://audistro-catalog:8080`
+- `audistro-web -> audistro-catalog fallback list`: `http://audistro-catalog:8080,http://audistro-catalog-mirror:8080`
 
 ## Run
 
@@ -63,6 +68,13 @@ Multi-provider upload publish:
   - `audistro-provider_eu_2_data` at `/mnt/providers/eu_2`
 - uploaded assets are fanout-published to both provider storage mounts
 - the primary `hls_master_url` still points at `eu_1`, while provider announcements make both `eu_1` and `eu_2` available for playback/failover
+
+Catalog mirror replication:
+
+- `audistro-catalog-mirror` starts in `CATALOG_READ_ONLY=true`
+- `audistro-catalog-replicator` periodically syncs the primary SQLite DB into the mirror volume
+- mirror reads are exposed on `http://localhost:18091`
+- web catalog GETs use `CATALOG_BASE_URLS` and fall back from primary to mirror automatically
 
 Encrypted playlist check:
 
