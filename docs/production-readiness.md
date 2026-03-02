@@ -2,6 +2,11 @@
 
 This document is the minimum operations checklist for a production-like audistro deployment.
 
+Operational runbooks:
+- [`docs/runbook-backup-restore.md`](./runbook-backup-restore.md)
+- [`docs/runbook-secrets-rotation.md`](./runbook-secrets-rotation.md)
+- [`docs/runbook-incident.md`](./runbook-incident.md)
+
 ## Secrets
 
 Required before first deploy:
@@ -24,6 +29,8 @@ Rules:
 
 Current storage is SQLite + persistent volumes.
 
+The executable drill lives in [`scripts/backup-restore-drill.sh`](../scripts/backup-restore-drill.sh).
+
 Back up at minimum:
 - catalog volume: `/var/lib/audistro-catalog`
 - FAP volume: `/var/lib/fap`
@@ -41,6 +48,7 @@ Restore checklist:
 2. restore secret files with original values
 3. boot services one by one and verify `/healthz` and provider `/readyz`
 4. verify FAP can still validate existing grants and provider identities remain stable
+5. compare restored ledger, asset, ingest, and provider-asset counts against the backup baseline
 
 Medium-term plan:
 - move catalog/FAP to managed Postgres when concurrent write load, backups, and failover requirements outgrow SQLite operational comfort
@@ -70,6 +78,7 @@ Recommended baseline:
 - alert on provider `/readyz` and FAP/catalog `/healthz`
 - alert on repeated 401/403 rates for key/token/internal endpoints
 - alert on ingest job failures and provider announce drift
+- drill the incident runbook in staging before calling the alerting baseline complete
 
 ## CI Gates
 

@@ -13,11 +13,11 @@ Bereits umgesetzte Punkte bleiben knapp als `done` markiert, damit offene Lücke
 - `[done]` Dev-/Admin-Flächen sind per Env-Gates im Code abgeschaltet, wenn der Dev-Modus nicht aktiv ist.
   Acceptance criteria: Web `/admin/*`, Catalog `/v1/admin/*` und FAP-Dev-Endpunkte liefern im Prod-Modus keine nutzbare Admin-Funktionalität mehr.
 
-- `[open]` Prod-Configs failen noch nicht hart, wenn interne CIDRs, Admin-Tokens oder Master-Secrets leer/unsicher gesetzt sind.
-  Acceptance criteria: Ein Prod-Start oder Predeploy-Check bricht deterministisch ab, wenn `*_ADMIN_TOKEN`, `FAP_MASTER_KEY_HEX` oder interne CIDR-Restriktionen fehlen oder offensichtlich unsicher sind.
+- `[done]` FAP, Catalog und Provider failen jetzt hart bei unsicheren Prod-Defaults, soweit die aktuellen Konfigurationsmodelle es erlauben.
+  Acceptance criteria: `FAP_DEV_MODE=false` ohne `FAP_INTERNAL_ALLOWED_CIDRS`, `CATALOG_ENV=dev` ohne `CATALOG_ADMIN_TOKEN` und `PROVIDER_INTERNAL_ENABLE=true` ohne `PROVIDER_INTERNAL_ALLOWED_CIDRS` brechen den Start deterministisch ab.
 
-- `[open]` Dev-/Admin-Endpunkte sind in Prod nur per Runtime-Gate gesperrt, aber nicht zusätzlich hart deaktiviert oder im Edge explizit blockiert.
-  Acceptance criteria: Im Prod-Referenz-Stack liefern `/admin/*` und nicht öffentliche `/internal/*` unabhängig von Applikations-Flags bereits am Edge `403` oder `404`.
+- `[done]` Dev-/Admin-Endpunkte sind in Prod hart deaktiviert oder am Edge blockiert.
+  Acceptance criteria: Catalog registriert `/v1/admin/*` in Prod nicht, Web-Dev-Admin bleibt aus, und der Caddy-Referenz-Stack blockiert `/catalog/v1/admin/*` sowie `/internal/*` bereits am Edge.
 
 - `[open]` Webhook-Härtung ist funktional vorhanden, aber Allowlist- und Secret-Rotation sind noch kein verifizierter Betriebsprozess.
   Acceptance criteria: Für jeden externen Webhook sind Secret-Rotation und optionaler Source-Allowlist-Check dokumentiert und einmal in Staging erfolgreich durchgespielt.
@@ -33,8 +33,8 @@ Bereits umgesetzte Punkte bleiben knapp als `done` markiert, damit offene Lücke
 - `[open]` Der Catalog-Ingest-Worker hat noch keine explizite Retry-/Dead-letter-Strategie für dauerhaft fehlschlagende Jobs.
   Acceptance criteria: Wiederholt fehlschlagende `ingest_jobs` werden nach einer begrenzten Retry-Zahl in einen klaren Endzustand überführt und können getrennt von normalen Queues ausgewertet werden.
 
-- `[open]` Die Publish-/Announce-Logik repliziert Assets noch nicht regulär auf mehrere Provider; der verschlüsselte Failover-Smoke arbeitet dev-only mit Kopier-/Rescan-Hilfen.
-  Acceptance criteria: Ein Asset kann über normale Worker-/Publish-Pfade auf mindestens zwei Provider verteilt und ohne manuelle Dateikopien im Playback verwendet werden.
+- `[done]` Die Publish-/Announce-Logik repliziert Assets regulär auf `eu_1` und `eu_2`; der verschlüsselte Failover-Smoke arbeitet ohne manuelle Kopierschritte.
+  Acceptance criteria: Ein normaler Upload veröffentlicht Assets automatisch auf mindestens zwei Provider, und `smoke-encrypted-failover.sh` benötigt keine manuelle Dateikopie mehr.
 
 - `[open]` `audistro-catalog` und `audistro-fap` haben noch keinen explizit getesteten Graceful-Shutdown-Pfad unter SIGTERM.
   Acceptance criteria: Ein SIGTERM-Test beendet beide Prozesse innerhalb des konfigurierten Fensters ohne beschädigte SQLite-Dateien oder verlorene Inflight-Arbeit.
@@ -47,8 +47,11 @@ Bereits umgesetzte Punkte bleiben knapp als `done` markiert, damit offene Lücke
 - `[open]` Catalog und FAP haben noch keine eigenen Metrik-Endpunkte oder Exporter für ingest-, payment- und key-relevante Counters.
   Acceptance criteria: Catalog und FAP liefern scrape-bare Metriken für Ingest-Status, Challenge/Token-Flows, Key-Endpoint-Erfolge/Rejects und interne Fehler.
 
-- `[open]` Alerting und Runbooks für die neuen Encrypted-Ingest-/Failover-Pfade sind noch nicht als Betriebsablauf validiert.
-  Acceptance criteria: Für Ingest-Fehler, Payment-/Webhook-Störungen, Key-Endpoint-Rejects und Provider-Announce-Drift existieren Alerts und ein dokumentierter Staging-Drill.
+- `[done]` Operative Runbooks für Backup/Restore, Secret-Rotation und Incident-Triage existieren jetzt.
+  Acceptance criteria: Die Runbooks dokumentieren konkrete Schritte für Restore, Rotation und Diagnose der aktuellen Payment-, Key-, Ingest- und Announce-Pfade.
+
+- `[open]` Alerting und die neuen Runbooks sind noch nicht als echter Betriebsablauf in Staging validiert.
+  Acceptance criteria: Für Ingest-Fehler, Payment-/Webhook-Störungen, Key-Endpoint-Rejects und Provider-Announce-Drift existieren Alerts und mindestens ein dokumentierter Staging-Drill.
 
 ## Networking/Deployment
 
@@ -58,7 +61,7 @@ Bereits umgesetzte Punkte bleiben knapp als `done` markiert, damit offene Lücke
 - `[open]` Der Prod-Predeploy-Check für öffentliche URLs, TLS-Zwang und das Verbot von `localhost`/`http://` ist noch nicht automatisiert.
   Acceptance criteria: Ein Predeploy-Check schlägt fehl, wenn Prod-Configs `localhost`, `http://` oder leere `*_PUBLIC_BASE_URL` enthalten.
 
-- `[open]` Provider-`/metrics` sind in der Referenz noch öffentlich erreichbar und nicht als privater Scrape-Pfad separiert.
+- `[done]` Provider-`/metrics` sind in der Referenz am Edge blockiert und nur noch als privater Scrape-Pfad gedacht.
   Acceptance criteria: Externe Requests auf Provider-`/metrics` liefern `403` oder `404`, während internes Scraping weiter funktioniert.
 
 - `[open]` Der Prod-Referenz-Stack ist noch nicht als echter Edge-Test mit externem Hostrouting verifiziert.
@@ -81,13 +84,16 @@ Bereits umgesetzte Punkte bleiben knapp als `done` markiert, damit offene Lücke
 - `[open]` Der Prod-Referenz-Stack ist noch kein blocking CI-Gate.
   Acceptance criteria: Mindestens ein separater CI-Job bootet den Prod-Referenz-Stack, führt Edge-/Security-Checks aus und blockiert bei Abweichungen den Build.
 
+- `[done]` Ein nächtlicher Restore-Drill ist als eigener CI-Pfad vorbereitet.
+  Acceptance criteria: Ein geplanter oder manuell gestarteter CI-Job führt `scripts/backup-restore-drill.sh` aus und skippt sauber, wenn die bezahlte Baseline mangels Secrets nicht erzeugt werden kann.
+
 ## Data/Backups
 
-- `[open]` Backup/Restore für die SQLite-Volumes ist dokumentiert, aber noch kein regelmäßig geübter, automatisierter Drill.
-  Acceptance criteria: Ein Restore-Test aus gesicherten Catalog-, FAP- und Provider-Volumes bringt den Stack reproduzierbar wieder in einen grünen `healthz/readyz`-Zustand.
+- `[done]` Backup/Restore für die SQLite-Volumes ist dokumentiert und als automatisierbarer Drill vorhanden.
+  Acceptance criteria: `scripts/backup-restore-drill.sh` bringt den Stack aus gesicherten Catalog-, FAP-, Provider- und LNbits-Volumes reproduzierbar in einen grünen Zustand zurück.
 
-- `[open]` Es gibt noch keinen dokumentierten Datenintegritäts-Check nach Restore für ingest-, ledger- und asset-relevante Tabellen.
-  Acceptance criteria: Nach einem Restore validiert ein Skript oder Runbook mindestens Asset-Metadaten, Provider-Announcements, `ingest_jobs` und FAP-Ledger-Daten gegen definierte Sollwerte.
+- `[done]` Es gibt jetzt einen dokumentierten und skriptbaren Datenintegritäts-Check nach Restore für die wichtigsten Tabellen und Provider-Asset-Bestände.
+  Acceptance criteria: Nach einem Restore vergleicht der Drill mindestens FAP-`ledger_entries`, Catalog-`assets`, Catalog-`ingest_jobs` und Provider-Asset-Verzeichnisse gegen definierte Sollwerte.
 
 - `[open]` Secret- und Key-Rotation ist für persistierte Daten nur teilweise beschrieben; insbesondere eine spätere `FAP_MASTER_KEY_HEX`-Rotation ist noch nicht operationalisiert.
   Acceptance criteria: Es existiert ein dokumentierter und testbarer Rotationspfad für Admin-Tokens, Webhook-Secrets und eine zukünftige Master-Key-Rotation ohne Datenverlust.

@@ -10,6 +10,9 @@
 {$API_HOST} {
   encode zstd gzip
 
+  @catalogAdmin path /catalog/v1/admin/*
+  respond @catalogAdmin 404
+
   @catalog path /catalog /catalog/*
   handle_path @catalog {
     reverse_proxy audistro-catalog:8080
@@ -30,6 +33,8 @@
   encode zstd gzip
   @internal path /internal/*
   respond @internal 404
+  @metrics path /metrics
+  respond @metrics 404
   reverse_proxy audistro-provider_eu_1:8080
 }
 
@@ -37,6 +42,8 @@
   encode zstd gzip
   @internal path /internal/*
   respond @internal 404
+  @metrics path /metrics
+  respond @metrics 404
   reverse_proxy audistro-provider_eu_2:8080
 }
 
@@ -44,5 +51,7 @@
   encode zstd gzip
   @internal path /internal/*
   respond @internal 404
+  @metrics path /metrics
+  respond @metrics 404
   reverse_proxy audistro-provider_us_1:8080
 }

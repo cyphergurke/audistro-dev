@@ -66,11 +66,13 @@ services:
     command: ["/app/audicatalog-worker"]
     volumes:
       - audistro_catalog_data:/var/lib/audistro-catalog
-      - audistro_provider_eu_1_data:/var/lib/audistro-provider
+      - audistro_provider_eu_1_data:/mnt/providers/eu_1
+      - audistro_provider_eu_2_data:/mnt/providers/eu_2
     networks: [internal]
     depends_on:
       - audistro-catalog
       - audistro-provider_eu_1
+      - audistro-provider_eu_2
 
   audistro-fap:
     build:

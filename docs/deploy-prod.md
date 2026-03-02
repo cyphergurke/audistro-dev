@@ -19,8 +19,36 @@ Public routing:
 
 Internal rules:
 - `/internal/*` is blocked at Caddy
+- `/catalog/v1/admin/*` is blocked at Caddy and not registered by Catalog in prod
+- provider `/metrics` is blocked at Caddy and should only be scraped from the private network
 - service-to-service traffic stays on the internal compose network
 - catalog/FAP admin endpoints stay disabled in prod configs
+
+## DNS And TLS
+
+- point `WEB_HOST`, `API_HOST`, and each provider host at the edge node running Caddy
+- issue public certificates only at Caddy; do not terminate TLS inside the app containers
+- keep all `*_PUBLIC_BASE_URL` values aligned with the actual HTTPS hostnames before first deploy
+- do not deploy if any public URL still uses `http://` or `localhost`
+
+## Internal Network Isolation
+
+- the `internal` compose network in [`docker-compose.prod.yml`](../docker-compose.prod.yml) is private to the stack
+- only Caddy joins both `edge` and `internal`
+- app services should not publish host ports directly in prod
+- provider internal endpoints require explicit `PROVIDER_INTERNAL_ENABLE=true` plus exact `PROVIDER_INTERNAL_ALLOWED_CIDRS`
+- FAP internal packaging-key access requires explicit `FAP_INTERNAL_ALLOWED_CIDRS` and `FAP_ADMIN_TOKEN`
+
+## Monitoring And Logs
+
+Scrape privately:
+- provider `/metrics` from the internal network only
+- `healthz` and `readyz` checks from your monitoring runner or sidecar, not from the public edge
+
+Ship logs from stdout/stderr into your log sink with at least:
+- 30 days hot retention for access and application logs
+- preserved request IDs / correlation fields
+- alerting on repeated 401/403 bursts for key, token, and internal endpoints
 
 ## Prepare Env Files
 
@@ -69,7 +97,12 @@ docker compose -f docker-compose.prod.yml up -d --build
 curl -fsS https://$API_HOST/catalog/healthz
 curl -fsS https://$API_HOST/fap/healthz
 curl -fsS https://$PROVIDER_EU_1_HOST/readyz
-curl -fsS https://$PROVIDER_EU_1_HOST/metrics
+```
+
+Private metrics example:
+
+```bash
+docker compose -f docker-compose.prod.yml exec audistro-provider_eu_1 curl -fsS http://127.0.0.1:8080/metrics
 ```
 
 Internal endpoint block check:
@@ -80,6 +113,14 @@ curl -i https://$PROVIDER_EU_1_HOST/internal/rescan
 ```
 
 Both should be blocked by the edge proxy.
+
+Provider metrics block check:
+
+```bash
+curl -i https://$PROVIDER_EU_1_HOST/metrics
+```
+
+It should also be blocked by the edge proxy.
 
 ## Notes
 
